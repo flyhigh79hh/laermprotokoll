@@ -1,7 +1,8 @@
 // Offline-Fähigkeit: App-Dateien zwischenspeichern, bei Netz immer die aktuelle Version laden.
-const CACHE = "laermprotokoll-v1";
+const CACHE = "laermprotokoll-v2";
 const DATEIEN = ["./", "index.html", "style.css", "app.js", "analyse.js", "lauscher.js", "speicher.js",
-  "worklet.js", "manifest.webmanifest", "icon.svg"];
+  "worklet.js", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png",
+  "icon-maskable-512.png"];
 
 self.addEventListener("install", (ev) => {
   ev.waitUntil(caches.open(CACHE).then((c) => c.addAll(DATEIEN)).then(() => self.skipWaiting()));
