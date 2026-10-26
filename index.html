@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1b2029">
+<title>Lärmprotokoll</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Lärmprotokoll</h1>
+  <span id="status-pille" class="pille">Gestoppt</span>
+  <button id="btn-start-stop" class="knopf">Lauschen starten</button>
+  <button id="btn-dunkel" class="knopf zweit" title="Bildschirm abdunkeln (bleibt an)">🌙</button>
+  <nav>
+    <button data-tab="live" class="aktiv">Live</button>
+    <button data-tab="protokoll">Protokoll</button>
+    <button data-tab="auswertung">Auswertung</button>
+    <button data-tab="einstellungen">Einstellungen</button>
+  </nav>
+</header>
+<div id="fehler" class="hinweis fehler" hidden></div>
+<div id="warnung" class="hinweis warnung" hidden></div>
+<div id="suche-info" class="hinweis" hidden></div>
+<div id="dunkel" hidden><span id="dk-status"></span><b id="dk-pegel"></b><span id="dk-info"></span><span style="font-size:13px">Antippen zum Aufwecken</span></div>
+
+<main>
+<!-- ============================================================ LIVE -->
+<section id="tab-live" class="tab">
+  <div id="start-hinweis" class="karte">
+    <p><b>So geht's:</b> Tablet nah an die Heizung legen, ans Ladekabel anschließen und „Lauschen starten“ tippen.
+    Die App muss <b>geöffnet und im Vordergrund</b> bleiben – der Bildschirm bleibt automatisch an. Mit 🌙 lässt er sich abdunkeln.</p>
+    <button class="knopf start-gross" id="btn-start-gross">Lauschen starten</button>
+  </div>
+  <div class="raster-live">
+    <div class="karte">
+      <div class="label">Aktueller Pegel</div>
+      <div class="gross"><span id="live-pegel">–</span> <small>dB</small></div>
+      <div class="meter"><div id="meter-fuell"></div><div id="meter-grund" class="marke"></div><div id="meter-schwelle" class="marke schwelle"></div></div>
+      <div class="kennzahlen">
+        <div><span class="label">Grundpegel</span><b id="live-grund">–</b></div>
+        <div><span class="label">Schwelle</span><b id="live-schwelle">–</b></div>
+        <div><span class="label">Heute</span><b id="live-heute">–</b></div>
+      </div>
+      <div id="live-geraet" class="klein"></div>
+    </div>
+    <div class="karte breit">
+      <div class="label">Pegelverlauf der letzten 2 Minuten</div>
+      <canvas id="live-chart" height="220"></canvas>
+      <div class="legende"><span class="l-linie"></span>Pegel <span class="l-linie l-max"></span>Spitze <span class="l-linie l-schwelle"></span>Auslöseschwelle <span class="l-linie l-grund"></span>Grundpegel</div>
+    </div>
+  </div>
+  <div class="raster-live">
+    <div class="karte">
+      <div class="label">Live-Mustererkennung</div>
+      <div id="live-muster" class="klein">Noch kein Referenzgeräusch festgelegt. Öffnen Sie im Protokoll eine Aufnahme des gesuchten Geräuschs und speichern Sie sie als Referenz.</div>
+    </div>
+    <div class="karte breit">
+      <div class="label">Letzte Aufnahmen</div>
+      <div id="live-letzte"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PROTOKOLL -->
+<section id="tab-protokoll" class="tab" hidden>
+  <div class="filter">
+    <label>Zeitraum <select id="f-zeitraum">
+      <option value="1">Heute</option><option value="7" selected>7 Tage</option>
+      <option value="30">30 Tage</option><option value="0">Alles</option></select></label>
+    <label>Ähnlichkeit zu <select id="f-referenz"></select></label>
+    <label id="f-min-box">mind. <input type="range" id="f-min" min="0" max="100" value="0"> <b id="f-min-wert">0 %</b></label>
+    <label><input type="checkbox" id="f-markiert"> nur markierte</label>
+  </div>
+  <div id="detail" class="karte" hidden>
+    <div class="detail-kopf">
+      <b id="d-titel"></b>
+      <span class="spacer"></span>
+      <button id="d-teilen" class="knopf zweit">Teilen</button>
+      <button id="d-markieren" class="knopf zweit">☆ Markieren</button>
+      <button id="d-loeschen" class="knopf gefahr">Löschen</button>
+      <button id="d-schliessen" class="knopf zweit">✕</button>
+    </div>
+    <div id="d-werte" class="klein"></div>
+    <div class="spek-box"><canvas id="d-spek" height="300"></canvas></div>
+    <div class="klein">Antippen = ab dieser Stelle abspielen. Mit dem Finger über das Bild ziehen = Bereich markieren, um ihn als Referenzgeräusch zu speichern.</div>
+    <audio id="d-audio" controls preload="auto"></audio>
+    <div class="zeile">
+      <label>Notiz <input id="d-notiz" placeholder="z. B. Klopfen an der Therme"></label>
+      <span class="spacer"></span>
+      <span id="d-auswahl" class="klein"></span>
+      <input id="d-ref-name" placeholder="Name des Geräuschs" value="Gesuchtes Geräusch">
+      <button id="d-ref" class="knopf">Als Referenzgeräusch speichern</button>
+    </div>
+  </div>
+  <div class="karte tabelle-box">
+    <table id="tabelle">
+      <thead><tr><th></th><th>Datum</th><th>Uhrzeit</th><th>Dauer</th><th>Spitze</th><th>Mittel</th><th>Frequenz</th><th>Auslöser</th><th id="th-aehnl"></th><th>Notiz</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="tabelle-leer" class="klein leer" hidden>Noch keine Aufnahmen in diesem Zeitraum.</div>
+  </div>
+</section>
+
+<!-- ============================================================ AUSWERTUNG -->
+<section id="tab-auswertung" class="tab" hidden>
+  <div class="karte">
+    <div class="label">Gesuchte Geräusche (Referenzen)</div>
+    <div id="ref-liste"></div>
+  </div>
+  <div class="filter">
+    <label>Auswerten <select id="a-referenz"></select></label>
+    <label id="a-min-box">mind. Ähnlichkeit <input type="range" id="a-min" min="0" max="100" value="80"> <b id="a-min-wert">80 %</b></label>
+    <label>Zeitraum <select id="a-zeitraum">
+      <option value="7">7 Tage</option><option value="14" selected>14 Tage</option>
+      <option value="30">30 Tage</option><option value="0">Alles</option></select></label>
+  </div>
+  <div class="kacheln" id="a-kacheln"></div>
+  <div class="karte"><div class="label">Fazit</div><div id="a-fazit"></div></div>
+  <div class="karte">
+    <div class="label">Zeitpunkte (jeder Punkt = ein Ereignis)</div>
+    <canvas id="a-zeitstrahl" height="320"></canvas>
+  </div>
+  <div class="raster-2">
+    <div class="karte">
+      <div class="label">Nach Tageszeit (Ereignisse pro überwachter Stunde)</div>
+      <canvas id="a-stunden" height="220"></canvas>
+    </div>
+    <div class="karte">
+      <div class="label">Abstand zum vorherigen Ereignis</div>
+      <canvas id="a-abstaende" height="220"></canvas>
+    </div>
+  </div>
+  <div class="karte">
+    <div class="filter innen">
+      <span class="label">Pegelverlauf am</span> <input type="date" id="a-tag">
+      <span class="klein">Striche unten = Ereignisse der Auswahl</span>
+    </div>
+    <canvas id="a-pegel" height="240"></canvas>
+  </div>
+</section>
+
+<!-- ============================================================ EINSTELLUNGEN -->
+<section id="tab-einstellungen" class="tab" hidden>
+  <div class="karte formular">
+    <label>Auslösen bei <input type="number" id="e-schwelle_ueber_grund" step="1" min="1"> dB über dem Grundpegel
+      <span class="klein">Kleiner = empfindlicher. 6–10 dB für leise Geräusche, 15+ dB wenn zu viel aufgenommen wird.</span></label>
+    <label>Absolute Mindestschwelle <input type="number" id="e-min_pegel" step="1"> dB (unkalibriert, dBFS)
+      <span class="klein">Unter diesem Pegel wird nie ausgelöst. −80 = praktisch aus.</span></label>
+    <label>Mindestdauer <input type="number" id="e-min_dauer" step="0.05" min="0"> s
+      <span class="klein">So lange muss der Pegel über der Schwelle sein (filtert einzelne Klicks).</span></label>
+    <label>Vorlauf <input type="number" id="e-vorlauf" step="0.5" min="0" max="10"> s &nbsp; Nachlauf <input type="number" id="e-nachlauf" step="0.5" min="0.5"> s &nbsp; Max. Länge <input type="number" id="e-max_dauer" step="10" min="10"> s</label>
+    <label>Kalibrierung <input type="number" id="e-kalibrierung" step="0.5"> dB
+      <span class="klein">Die Pegel sind zunächst relativ (dBFS). Mit einer Schallpegel-Messapp auf einem anderen Gerät vergleichen und die Differenz eintragen – dann zeigt die App ungefähre dB(Z)-Werte.</span></label>
+    <label class="check"><input type="checkbox" id="e-mustererkennung"> Auch bei Ähnlichkeit zu einem Referenzgeräusch aufnehmen (auch wenn es leiser als die Schwelle ist)</label>
+    <div class="zeile"><button id="e-speichern" class="knopf">Speichern</button><span id="e-ok" class="klein"></span></div>
+  </div>
+  <div class="karte formular">
+    <div class="label">Daten</div>
+    <p id="e-speicherplatz" class="klein"></p>
+    <div class="zeile">
+      <button id="e-export-zip" class="knopf">Alles exportieren (ZIP mit WAV + CSV)</button>
+      <button id="e-export-csv" class="knopf zweit">Nur Protokoll (CSV)</button>
+    </div>
+    <p class="klein">Alle Aufnahmen werden nur auf diesem Tablet im Browser gespeichert – nichts wird hochgeladen. Wenn Sie die Browserdaten von Chrome löschen, sind auch die Aufnahmen weg. Exportieren Sie daher zwischendurch.</p>
+    <div class="zeile"><button id="e-alles-loeschen" class="knopf gefahr">Alle Aufnahmen und Daten löschen</button></div>
+  </div>
+</section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

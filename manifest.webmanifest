@@ -1,0 +1,12 @@
+{
+  "name": "Lärmprotokoll",
+  "short_name": "Lärmprotokoll",
+  "description": "Nimmt Geräusche automatisch auf und protokolliert, wann sie auftreten.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12151b",
+  "theme_color": "#1b2029",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
